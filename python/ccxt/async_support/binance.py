@@ -2003,7 +2003,7 @@ class binance(Exchange):
         timestamp = self.safe_integer(ticker, 'closeTime')
         marketId = self.safe_string(ticker, 'symbol')
         symbol = self.safe_symbol(marketId, market)
-        last = self.safe_string(ticker, 'lastPrice')
+        last = self.safe_string(ticker, 'lastPrice') or self.safe_string(ticker, 'price')
         isCoinm = ('baseVolume' in ticker)
         baseVolume = None
         quoteVolume = None
@@ -2094,6 +2094,23 @@ class binance(Exchange):
         method = self.safe_string(self.options, 'fetchTickersMethod', defaultMethod)
         response = await getattr(self, method)(query)
         return self.parse_tickers(response, symbols)
+
+    async def fetch_tickers_price(self, symbols=None, params={}):
+        #await self.load_markets()
+        defaultType = self.safe_string_2(self.options, 'fetchTickers', 'defaultType', 'spot')
+        type = self.safe_string(params, 'type', defaultType)
+        query = self.omit(params, 'type')
+        defaultMethod = None
+        if type == 'future':
+            defaultMethod = 'fapiPublicGetTickerPrice'
+        elif type == 'delivery':
+            defaultMethod = 'dapiPublicGetTickerPrice'
+        else:
+            defaultMethod = 'publicGetTickerPrice'
+        method = self.safe_string(self.options, 'fetchTickersMethod', defaultMethod)
+        response = await getattr(self, method)(query)
+        return self.parse_tickers(response, symbols)
+
 
     def parse_ohlcv(self, ohlcv, market=None):
         # when api method = publicGetKlines or fapiPublicGetKlines or dapiPublicGetKlines
